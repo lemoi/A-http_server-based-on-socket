@@ -22,7 +22,7 @@ int socket(int family, int type, int protocol)
 /*
 family : AF_INET, //use the ipv4 address(32 bit) and port(16 bit)
 	     AF_INET6, //use the ipv6 address(128bit)
-	     AF_LOCAL || AF_UNIX,
+	     AF_LOCAL || AF_UNIX, // used for the unix/linux process communication
 	     AF_ROUTE ...
 type : SOCK_STREAM,
 	   SOCK_DGRAM,
@@ -142,4 +142,34 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags);
 ```c
 #include <unistd.h>
 int close(int fd);
+```
+
+Comparing with the c api, we can see the python api are similar except it's 
+object-oriented.
+
+Next, let's make a simple practice.
+```python
+//server
+import socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+sock.bind(('127.0.0.1', 8080))
+sock.listen(5)
+while True:
+	connect, address= sock.accept()
+	data = bytes()
+	while True:
+		temp = connect.recv(1024)
+		if not temp: break
+		data += temp
+	connect.sendall(data)
+	coonect.close()
+
+//client
+import socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+sock.connect(('127.0.0.1', 8080))
+sock.sendall(b'Hello, World')
+data = sock.recv(1024)
+sock.close()
+print(data)
 ```
