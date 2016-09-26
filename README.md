@@ -173,3 +173,87 @@ data = sock.recv(1024)
 sock.close()
 print(data)
 ```
+####Some API details
+#####1. socket()
+```
+sock = socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
+```
+If fileno is specified, the other arguments are ignored, and the function will return the same socket.
+
+The other arguments is same with c.
+
+#####2. socketpair()
+```python
+socket.socketpair([family,[type[,proto]]])
+#Buid a pair of socket for process communication
+```
+
+raw c :
+
+```c
+int socketpair(int d, int type, int protocol, int sv[2])
+//an example for process communication
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+void err_sys(const char *errmsg);
+int main(void){
+	int sockfd[2];
+	pid_t pid;
+	if ((socketpair(AF_LOCAL, SOCK_STREAM, 0, sockfd))<0)
+	err_sys("socketpair");
+	if ((pid = fork()) == -1)
+	err_sys("fork");
+	else if (pid == 0) { 
+		/* child process */
+	　　char s[BUFSIZ];
+		ssize_t n;
+	　　close(sockfd[1]); //write port
+		if ((n = read(sockfd[0], s, sizeof(s))) <0)
+			err_sys("read error!\n");
+		printf("read:%s\n",s);
+		close(sockfd[0]);
+		exit(0);
+	} else if (pid > 0) { 
+		/* parent process */
+		char buf[] = "hello china";
+		ssize_t n;
+		close(sockfd[0]); //read port
+		if((n = write(sockfd[1], buf, sizeof(buf)))<0)
+			err_sys("write error!\n");
+		close(sockfd[1]);
+		wait(NULL);
+	}
+	return 0;
+}
+void err_sys(const char *errmsg){
+	perror(errmsg);
+	exit(1);
+}
+```
+#####3. create_connection()
+```python
+socket.create_connection(address[, timeout[, source_address]])
+```
+This is a high level function than connect(), and you can call it to connect a server directly.
+#####4. fromfd()
+```python
+socket.fromfd(fd, family, type, proto=0)
+```
+Duplicate the file descriptor fd, and set socket options.
+#####5. getaddrinfo()
+```python
+socket.getaddrinfo(host, port, family=0, type=0, proto=0, flags=0)
+```
+The result is a list of 5-tuples with the following structure:
+(family, type, proto, canonname, sockaddr)
+
+####Non_Blocking socket
+The socket is blocking defaultly which means that if you read | write | accept | connect the process will block. 
+```python
+socket.setblocking(flag)
+flag : True | False
+```
