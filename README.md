@@ -1,6 +1,12 @@
 # program with the socket api in python
+###Directory
+- [Base function](#base-function)
+- [C API](#c-api)
+- [Some other functions](#some-other-functions)
+- [Non_blocking socket](#non_blocking-socket)
+	- [select](#select)
 
-####Main function
+####Base function
 ```python
 "server"
 sock = socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
@@ -18,7 +24,7 @@ what's the c api like before we drive into it.
 
 **socket()**
 ```c
-int socket(int family, int type, int protocol)
+int socket(int family, int type, int protocol);
 /*
 family : AF_INET, //use the ipv4 address(32 bit) and port(16 bit)
 	     AF_INET6, //use the ipv6 address(128bit)
@@ -43,7 +49,7 @@ otherwise the system will do the work for you automaticly when connect() or list
 
 **bind()**
 ```c   
-int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 /*
 sockfd : returned by socket
 
@@ -83,14 +89,14 @@ addrlen : the address length
 
 **listen() | connect()**
 ```c
-int listen(int sockfd, int backlog)
+int listen(int sockfd, int backlog);
 /*
 used for server side
 sockfd : same as bind()
 backlog : the max number of connection
 */
 
-int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 /*
 used for client side
 sockfd/addr/addrlen : same as bind()
@@ -99,7 +105,7 @@ sockfd/addr/addrlen : same as bind()
 
 **accept()**
 ```c
-int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 /*
 sockfd : same as bind()
 addr : used for saving client address
@@ -173,7 +179,7 @@ data = sock.recv(1024)
 sock.close()
 print(data)
 ```
-####Some API details
+####Some other functions
 #####1. socket()
 ```
 sock = socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
@@ -250,10 +256,96 @@ socket.getaddrinfo(host, port, family=0, type=0, proto=0, flags=0)
 ```
 The result is a list of 5-tuples with the following structure:
 (family, type, proto, canonname, sockaddr)
+#####6. setsockopt() | getsockopt()
+```python
+socket.getsockopt(level, optname[, buflen])
+socket.setsockopt(level, optname, value)
+```
+raw c:
+```c
+#include <sys/types.h>
+#include <sys/socket.h>
+int setsocktopt(int s, int level, int optname, const void * optval, socklen_t optlen);
 
-####Non_Blocking socket
-The socket is blocking defaultly which means that if you read | write | accept | connect the process will block. 
+int getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
+/*
+s : socket descriptor
+level : SOL_SOCKET,
+		IPPROTO_IP | IPPROTO_IPv6,
+		IPPROTO_TCP
+optname, optval, optlen
+*/
+```
+Look up this [article](http://blog.csdn.net/chary8088/article/details/2486377) for details!
+####Non_blocking socket
+The socket is blocking defaultly, which means that if you read | write | accept | connect the process will block. So, we should use multi_thread or multi_process if we talk with multi_client at the same time. However, we could set the socket to non_blocking and do the work in single thread(process).
 ```python
 socket.setblocking(flag)
 flag : True | False
+```
+But, how can we know when the socket is readable or writeable? We need the select.
+#####select
+python document:
+> This module provides access to the select() and poll() functions available in most operating systems, devpoll() available on Solaris and derivatives, epoll() available on Linux 2.5+ and kqueue() available on most BSD.
+
+Let's see the details. 
+
+**1. select()**
+```python
+select.select(rlist, wlist, xlist[, timeout])
+#rlist: wait until ready for reading
+#wlist: wait until ready for writing
+#xlist: wait for an “exceptional condition” 
+```
+A straighforward interface to the Unix select() system call.
+
+Combine it with socket:
+
+```python
+"a simple http server"
+import socket
+import select
+
+HOST = ('127.0.0.1', 80)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.bind(HOST)
+sock.listen()
+rlist = []
+rlist.append(sock)
+header = "HTTP/1.0 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n"
+body = "Aha, Hello"
+response = (header + body).encode('ascii')
+while True:
+	rsocks, wsocks, _ = select.select(rlist, [], [])
+	for rsock in rsocks:
+		if rsock is sock:
+			conn, addr = rsock.accept()
+			rlist.append(conn) 
+		else:
+			print(rsock.recv(1024))
+			rsock.sendall(response)
+			rsock.close()
+			rlist.remove(rsock)
+```
+
+**2. devpoll | epoll | kqueue | kevent**
+```python
+poll()    #->poll #supported on most Unix systems
+devpoll() #->devpoll #Solaris
+epoll()   #->epoll #linux2.5.44+
+kqueue()  #->kqueue #BSD
+kevent()  #->kevent #BSD
+```
+These objects are more effective than select, but they are plantform independently.
+
+Just take a look at epoll.
+```python
+epoll.close()
+epoll.closed
+epoll.fileno()
+epoll.fromfd(fd)
+epoll.register(fd[, eventmask])
+epoll.modify(fd, eventmask)
+epoll.unregister(fd)
+epoll.poll(timeout = 1, maxevent = -1)
 ```
