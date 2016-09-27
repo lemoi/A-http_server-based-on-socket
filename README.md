@@ -1,12 +1,12 @@
 # program with the socket api in python
-###Directory
+##Directory
 - [Base function](#base-function)
 - [C API](#c-api)
 - [Some other functions](#some-other-functions)
 - [Non_blocking socket](#non_blocking-socket)
 	- [select](#select)
 
-####Base function
+###Base function
 ```python
 "server"
 sock = socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
@@ -18,7 +18,7 @@ sock.accept()
 sock = socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
 sock.connect(address)
 ```
-####C API
+###C API
 The python socket api is a straightforward transliteration of c api, so let's see
 what's the c api like before we drive into it.
 
@@ -179,8 +179,8 @@ data = sock.recv(1024)
 sock.close()
 print(data)
 ```
-####Some other functions
-#####1. socket()
+###Some other functions
+**1. socket()**
 ```
 sock = socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
 ```
@@ -188,7 +188,7 @@ If fileno is specified, the other arguments are ignored, and the function will r
 
 The other arguments is same with c.
 
-#####2. socketpair()
+####2. socketpair()
 ```python
 socket.socketpair([family,[type[,proto]]])
 #Buid a pair of socket for process communication
@@ -240,23 +240,23 @@ void err_sys(const char *errmsg){
 	exit(1);
 }
 ```
-#####3. create_connection()
+**3. create_connection()**
 ```python
 socket.create_connection(address[, timeout[, source_address]])
 ```
 This is a high level function than connect(), and you can call it to connect a server directly.
-#####4. fromfd()
+**4. fromfd()**
 ```python
 socket.fromfd(fd, family, type, proto=0)
 ```
 Duplicate the file descriptor fd, and set socket options.
-#####5. getaddrinfo()
+**5. getaddrinfo()**
 ```python
 socket.getaddrinfo(host, port, family=0, type=0, proto=0, flags=0)
 ```
 The result is a list of 5-tuples with the following structure:
 (family, type, proto, canonname, sockaddr)
-#####6. setsockopt() | getsockopt()
+**6. setsockopt() | getsockopt()**
 ```python
 socket.getsockopt(level, optname[, buflen])
 socket.setsockopt(level, optname, value)
@@ -277,14 +277,14 @@ optname, optval, optlen
 */
 ```
 Look up this [article](http://blog.csdn.net/chary8088/article/details/2486377) for details!
-####Non_blocking socket
+###Non_blocking socket
 The socket is blocking defaultly, which means that if you read | write | accept | connect the process will block. So, we should use multi_thread or multi_process if we talk with multi_client at the same time. However, we could set the socket to non_blocking and do the work in single thread(process).
 ```python
 socket.setblocking(flag)
 flag : True | False
 ```
 But, how can we know when the socket is readable or writeable? We need the select.
-#####select
+####select
 python document:
 > This module provides access to the select() and poll() functions available in most operating systems, devpoll() available on Solaris and derivatives, epoll() available on Linux 2.5+ and kqueue() available on most BSD.
 
