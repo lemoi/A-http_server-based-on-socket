@@ -245,17 +245,20 @@ void err_sys(const char *errmsg){
 socket.create_connection(address[, timeout[, source_address]])
 ```
 This is a high level function than connect(), and you can call it to connect a server directly.
+
 **4. fromfd()**
 ```python
 socket.fromfd(fd, family, type, proto=0)
 ```
 Duplicate the file descriptor fd, and set socket options.
+
 **5. getaddrinfo()**
 ```python
 socket.getaddrinfo(host, port, family=0, type=0, proto=0, flags=0)
 ```
 The result is a list of 5-tuples with the following structure:
 (family, type, proto, canonname, sockaddr)
+
 **6. setsockopt() | getsockopt()**
 ```python
 socket.getsockopt(level, optname[, buflen])
